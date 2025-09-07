@@ -36,16 +36,21 @@ const PublishCard = () => {
 
   const onSubmit = async (data) => {
     try {
+      // Convert Date to local ISO string (YYYY-MM-DDTHH:mm) to avoid timezone shift
+      function toLocalISOString(date) {
+        const pad = (n) => n.toString().padStart(2, '0');
+        return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+      }
       const body = {
         "availableSeats": data.seat,
         "origin": {
-          "place": data.from,
+          "place": data.from.trim(),
         },
         "destination": {
-          "place": data.to,
+          "place": data.to.trim(),
         },
-        "startTime": data.startTime,
-        "endTime": data.endTime,
+        "startTime": toLocalISOString(new Date(data.startTime)),
+        "endTime": toLocalISOString(new Date(data.endTime)),
         "price": data.price
       }
       await axios.post(`${apiUri}/rides`, body, {withCredentials: true});
@@ -135,9 +140,14 @@ const PublishCard = () => {
               <FormItem className="flex flex-col space-y-1.5">
                 <FormLabel>Departure Time</FormLabel>
                 <FormControl>
-                  <Input type="datetime-local" placeholder="Departure time" {...field} 
-                    value={field.value ? field.value.toISOString().slice(0, 16) : ''}
-                    onChange={(e) => field.onChange(new Date(e.target.value))}
+                  <Input type="datetime-local" placeholder="Departure time" {...field}
+                    value={field.value ? (() => {
+                      const d = new Date(field.value);
+                      d.setSeconds(0,0);
+                      const pad = n => n.toString().padStart(2, '0');
+                      return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+                    })() : ''}
+                    onChange={e => field.onChange(new Date(e.target.value))}
                   />
                 </FormControl>
                 <FormMessage />
@@ -151,9 +161,14 @@ const PublishCard = () => {
               <FormItem className="flex flex-col space-y-1.5">
                 <FormLabel>Arrival Time</FormLabel>
                 <FormControl>
-                  <Input type="datetime-local" placeholder="Arrival time" {...field} 
-                    value={field.value ? field.value.toISOString().slice(0, 16) : ''}
-                    onChange={(e) => field.onChange(new Date(e.target.value))}
+                  <Input type="datetime-local" placeholder="Arrival time" {...field}
+                    value={field.value ? (() => {
+                      const d = new Date(field.value);
+                      d.setSeconds(0,0);
+                      const pad = n => n.toString().padStart(2, '0');
+                      return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+                    })() : ''}
+                    onChange={e => field.onChange(new Date(e.target.value))}
                   />
                 </FormControl>
                 <FormMessage />

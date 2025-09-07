@@ -1,12 +1,13 @@
 import express from "express";
-import { deleteUser, getAllUsers, getUser, updateUser } from "../controllers/user.js";
 import { verifyUser, verifyAdmin } from "../utils/verifyToken.js";
+import { getUser, getAllUsers } from "../controllers/user.js";
 
-const router = express.Router()
+const router = express.Router();
 
-router.get("/", verifyAdmin, getAllUsers)
-router.get("/:id", verifyUser, getUser)
-router.patch("/:id", verifyUser, updateUser)
-router.delete("/:id", verifyUser, deleteUser)
+// Get user profile (protected route)
+router.get("/:id", verifyUser, getUser);
 
-export default router
+// Admin-only: get all users
+router.get("/admin/all", verifyAdmin, getAllUsers);
+
+export default router;

@@ -9,38 +9,61 @@ import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
 import { Form, FormControl, FormField, FormItem } from "./ui/form"
 import { CalendarIcon, MapPin, Minus, Plus, User } from "lucide-react"
 import { Input } from "./ui/input"
-import { useSearchParams } from "react-router-dom"
+import { useSearchParams, useNavigate } from "react-router-dom"
+import { useState } from "react";
 
 
 const searchSchema = z.object({
   from: z.string(),
   to: z.string(),
   seat: z.number().min(1).max(10),
-  date: z.date(),
+  date: z.date().optional().nullable(),
 })
 
+
 const Search = () => {
-  const [searchParams, setSearchParams] = useSearchParams({from:"",to:"",seat:"",date:""})
+  const [searchParams] = useSearchParams({from:"",to:"",seat:"",date:""})
+  const navigate = useNavigate();
+  const [error, setError] = useState("");
 
   const form = useForm({
     resolver: zodResolver(searchSchema),
     defaultValues: {
-      from: searchParams.get("from") || "", // Ensure default value is an empty string if not found
-      to: searchParams.get("to") || "", // Ensure default value is an empty string if not found
-      seat: parseInt(searchParams.get("seat")) >= 1 && parseInt(searchParams.get("seat")) <= 10 ? parseInt(searchParams.get("seat")) : 1, // Ensure seat is between 1 and 10
-      date: searchParams.get("date") ? new Date(searchParams.get("date")) : null // Convert date string to Date object or null if not found
+      from: searchParams.get("from") || "",
+      to: searchParams.get("to") || "",
+      seat: parseInt(searchParams.get("seat")) >= 1 && parseInt(searchParams.get("seat")) <= 10 ? parseInt(searchParams.get("seat")) : 1,
+      date: searchParams.get("date") ? new Date(searchParams.get("date")) : null
     },
   });
 
   const onSubmit = async (data) => {
     await form.handleSubmit((formData) => {
-      setSearchParams(formData, {replace: true});
+      try {
+        // Set today's date if no date is selected
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        const params = new URLSearchParams({
+          from: formData.from || "",
+          to: formData.to || "",
+          seat: formData.seat || 1,
+          date: formData.date ? formData.date.toISOString().slice(0,10) : today.toISOString().slice(0,10)
+        });
+        
+
+        navigate(`/search?${params.toString()}`);
+        setError("");
+      } catch (err) {
+
+        setError("Failed to search. Please try again.");
+      }
     })(data);
   };
 
   return (
     <Form {...form}>
       <form onSubmit={onSubmit} className="flex flex-col gap-1 sm:flex-row w-full sm:w-fit divide-y sm:divide-y-0 sm:divide-x bg-background border p-3 rounded-lg">
+        {error && <div className="text-red-500 text-sm mb-2">{error}</div>}
         <div className="flex ">
           <FormField
             control={form.control}

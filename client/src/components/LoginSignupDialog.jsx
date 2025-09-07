@@ -17,26 +17,52 @@ const LoginSignupDialog = () => {
 
   const handleLogin = async (event) => {
     event.preventDefault();
+    
+    // Validate form data
+    if (!loginData.email || !loginData.password) {
+      dispatch({type: "LOGIN_FAILED", payload: {message: "Email and password are required"}})
+      return;
+    }
+    
     dispatch({ type: 'LOGIN_START' });
-    try{
+    
+    try {
       const res = await axios.post(`${apiUri}/auth/login`, loginData, {withCredentials: true})
       dispatch({type:"LOGIN_SUCCESS", payload: res.data})
       setLoginData({ email: "", password: "" })
-    }catch(err){
-      dispatch({type: "LOGIN_FAILED", payload: err.response.data})
+    } catch(err) {
+      console.error("Login error:", err);
+      const errorMessage = err.response?.data?.message || "An error occurred during login";
+      dispatch({type: "LOGIN_FAILED", payload: {message: errorMessage}})
     }
   };
 
 
   const handleSignup = async (event) => {
     event.preventDefault();
+    
+    // Validate form data
+    if (!signupData.name || !signupData.email || !signupData.password) {
+      dispatch({type: "LOGIN_FAILED", payload: {message: "All fields are required"}})
+      return;
+    }
+    
+    // Password validation
+    if (signupData.password.length < 8) {
+      dispatch({type: "LOGIN_FAILED", payload: {message: "Password must be at least 8 characters long"}})
+      return;
+    }
+    
     dispatch({ type: 'LOGIN_START' });
-    try{
+    
+    try {
       const res = await axios.post(`${apiUri}/auth/register`, signupData, {withCredentials: true})
       dispatch({type:"LOGIN_SUCCESS", payload: res.data})
       setSignupData({ name: "", email: "", password: "" })
-    }catch(err){
-      dispatch({type: "LOGIN_FAILED", payload: err.response.data})
+    } catch(err) {
+      console.error("Signup error:", err);
+      const errorMessage = err.response?.data?.message || "An error occurred during signup";
+      dispatch({type: "LOGIN_FAILED", payload: {message: errorMessage}})
     }
   };
 
@@ -52,7 +78,11 @@ const LoginSignupDialog = () => {
               <TabsTrigger value="login">Login</TabsTrigger>
               <TabsTrigger value="signup">SignUp</TabsTrigger>
             </TabsList>
-            {error && <span className="text-sm text-destructive">{error?.message}</span> }
+            {error && (
+              <div className="bg-destructive/15 p-3 rounded-md mb-4">
+                <span className="text-sm text-destructive font-medium">{error?.message}</span>
+              </div>
+            )}
             <TabsContent value="login">
               <form onSubmit={handleLogin}>
                 <Card>

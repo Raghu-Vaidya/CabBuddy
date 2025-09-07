@@ -25,24 +25,60 @@ export const getAllRides = async (req, res, next) => {
 
 export const findRides = async (req, res, next) => {
   try {
-    const { from, to, seat, date } = req.query;
-    
+    const { from, to, seat, date, sort, departure } = req.query;
+    console.log('SEARCH QUERY:', req.query);
     if (!from || !to || !seat || !date) {
-        return res.status(400).json({ message: 'Please provide all the details' });
+      return res.status(400).json({ message: 'Please provide all the details' });
     }
-    const searchDate = new Date(date)
-    searchDate.setHours(0, 0, 0, 0); // Set to midnight of the specified date
+    const searchDate = new Date(date);
+    searchDate.setHours(0, 0, 0, 0);
+    const nextDay = new Date(searchDate.getTime() + 24 * 60 * 60 * 1000);
 
-    const rides = await Ride.find({
-        'origin.place': new RegExp(from, 'i'),
-        'destination.place': new RegExp(to, 'i'),
-        'availableSeats': { $gte: seat},
-        'startTime': { $gte: searchDate.toISOString(), $lt: new Date(searchDate.getTime() + 24 * 60 * 60 * 1000).toISOString() } // Filter rides up to next midnight
-    })
-    .populate('creator', 'name profilePicture stars') 
-    .lean(); 
+    // Departure time filter
+    let departureFilters = [];
+    if (departure) {
+      const depArr = Array.isArray(departure) ? departure : departure.split(',');
+      depArr.forEach((d) => {
+        if (d === 'departure_before_six_am') {
+          departureFilters.push({
+            startTime: { $gte: searchDate.toISOString(), $lt: new Date(searchDate.getTime() + 6 * 60 * 60 * 1000).toISOString() }
+          });
+        } else if (d === 'departure_six_to_noon') {
+          departureFilters.push({
+            startTime: { $gte: new Date(searchDate.getTime() + 6 * 60 * 60 * 1000).toISOString(), $lt: new Date(searchDate.getTime() + 12 * 60 * 60 * 1000).toISOString() }
+          });
+        } else if (d === 'departure_noon_to_six') {
+          departureFilters.push({
+            startTime: { $gte: new Date(searchDate.getTime() + 12 * 60 * 60 * 1000).toISOString(), $lt: new Date(searchDate.getTime() + 18 * 60 * 60 * 1000).toISOString() }
+          });
+        }
+      });
+    }
+
+    let filter = {
+      'origin.place': new RegExp(from, 'i'),
+      'destination.place': new RegExp(to, 'i'),
+      'availableSeats': { $gte: Number(seat) },
+      'startTime': { $gte: searchDate.toISOString(), $lt: nextDay.toISOString() }
+    };
+    if (departureFilters.length > 0) {
+      filter = { ...filter, $or: departureFilters };
+    }
+
+    // Sorting
+    let sortOption = { startTime: 1 };
+    if (sort === 'Price') sortOption = { price: 1 };
+    if (sort === 'Shortest ride') sortOption = { endTime: 1 };
+
+
+    const rides = await Ride.find(filter)
+      .populate('creator', 'name profilePicture stars')
+      .sort(sortOption)
+      .lean();
+
     res.status(200).json({ success: true, rides });
   } catch (err) {
+
     next(err);
   }
 }

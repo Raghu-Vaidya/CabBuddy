@@ -8,25 +8,25 @@ import authRoute from "./routes/auth.routes.js"
 import userRoute from "./routes/user.routes.js"
 import rideRoute from "./routes/ride.routes.js"
 
-const app = express()
-const PORT = 8080;
-
 dotenv.config()
 
-const connectDB = (url) => {
-  mongoose.set("strictQuery", true);
+const app = express()
+const PORT = process.env.PORT || 5000;
 
-  mongoose
-    .connect(process.env.MONGO)
-    .then(() => console.log("Database connected"))
-    .catch((error) => console.log(error));
+const connectDB = async () => {
+  try {
+    await mongoose.connect(process.env.MONGODB_URI);
+    console.log("Database connected successfully");
+  } catch (error) {
+    console.error("Database connection error:", error);
+    process.exit(1);
+  }
 };
 
 //middlewares
 app.use(cors({
-    origin: process.env.ORIGIN,
+    origin: [process.env.ORIGIN, "http://localhost:5173"],
     credentials: true,
-    // allowedMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
   }
 ))
 app.use(cookieParser())
@@ -36,8 +36,7 @@ app.use("/api/users", userRoute);
 app.use("/api/auth", authRoute);
 app.use("/api/rides", rideRoute);
 
-
-app.use((err, req, res, next)=>{
+app.use((err, req, res, next) => {
   const errorStatus = err.status || 500;
   const errorMessage = err.message || "Something went wrong";
   return res.status(errorStatus).json({
@@ -47,7 +46,12 @@ app.use((err, req, res, next)=>{
   })
 })
 
-app.listen(PORT, () => {
-  connectDB()
-  console.log(`Connected to backend on PORT: ${PORT}`)
+// Connect to database first, then start server
+connectDB().then(() => {
+  app.listen(PORT, () => {
+    console.log(`Server is running on PORT: ${PORT}`)
+  })
+}).catch(err => {
+  console.error("Failed to start server:", err)
+  process.exit(1)
 })
