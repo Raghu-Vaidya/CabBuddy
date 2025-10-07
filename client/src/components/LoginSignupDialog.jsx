@@ -24,15 +24,42 @@ const LoginSignupDialog = () => {
       return;
     }
     
+    // Email validation
+    const emailRegex = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
+    if (!emailRegex.test(loginData.email)) {
+      dispatch({type: "LOGIN_FAILED", payload: {message: "Please enter a valid email address"}})
+      return;
+    }
+    
     dispatch({ type: 'LOGIN_START' });
     
     try {
-      const res = await axios.post(`${apiUri}/auth/login`, loginData, {withCredentials: true})
+      const res = await axios.post(`${apiUri}/auth/login`, loginData, {
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
       dispatch({type:"LOGIN_SUCCESS", payload: res.data})
       setLoginData({ email: "", password: "" })
     } catch(err) {
       console.error("Login error:", err);
-      const errorMessage = err.response?.data?.message || "An error occurred during login";
+      let errorMessage = "An error occurred during login";
+      
+      if (err.response) {
+        // Server responded with an error
+        errorMessage = err.response.data?.message || errorMessage;
+        console.log("Server error response:", err.response.data);
+      } else if (err.request) {
+        // Request was made but no response received
+        errorMessage = "No response from server. Please check your connection.";
+        console.log("No response received:", err.request);
+      } else {
+        // Error in setting up the request
+        errorMessage = err.message || errorMessage;
+        console.log("Request setup error:", err.message);
+      }
+      
       dispatch({type: "LOGIN_FAILED", payload: {message: errorMessage}})
     }
   };
@@ -53,15 +80,42 @@ const LoginSignupDialog = () => {
       return;
     }
     
+    // Email validation
+    const emailRegex = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
+    if (!emailRegex.test(signupData.email)) {
+      dispatch({type: "LOGIN_FAILED", payload: {message: "Please enter a valid email address"}})
+      return;
+    }
+    
     dispatch({ type: 'LOGIN_START' });
     
     try {
-      const res = await axios.post(`${apiUri}/auth/register`, signupData, {withCredentials: true})
+      const res = await axios.post(`${apiUri}/auth/register`, signupData, {
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
       dispatch({type:"LOGIN_SUCCESS", payload: res.data})
       setSignupData({ name: "", email: "", password: "" })
     } catch(err) {
       console.error("Signup error:", err);
-      const errorMessage = err.response?.data?.message || "An error occurred during signup";
+      let errorMessage = "An error occurred during signup";
+      
+      if (err.response) {
+        // Server responded with an error
+        errorMessage = err.response.data?.message || errorMessage;
+        console.log("Server error response:", err.response.data);
+      } else if (err.request) {
+        // Request was made but no response received
+        errorMessage = "No response from server. Please check your connection.";
+        console.log("No response received:", err.request);
+      } else {
+        // Error in setting up the request
+        errorMessage = err.message || errorMessage;
+        console.log("Request setup error:", err.message);
+      }
+      
       dispatch({type: "LOGIN_FAILED", payload: {message: errorMessage}})
     }
   };

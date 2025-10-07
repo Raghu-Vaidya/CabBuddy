@@ -3,6 +3,8 @@ import dotenv from "dotenv"
 import mongoose from "mongoose"
 import cors from "cors"
 import cookieParser from "cookie-parser"
+import { createServer } from "http"
+import { Server } from "socket.io"
 
 import authRoute from "./routes/auth.routes.js"
 import userRoute from "./routes/user.routes.js"
@@ -11,6 +13,13 @@ import rideRoute from "./routes/ride.routes.js"
 dotenv.config()
 
 const app = express()
+const server = createServer(app)
+const io = new Server(server, {
+  cors: {
+    origin: [process.env.ORIGIN, "http://localhost:5173"],
+    credentials: true,
+  }
+})
 const PORT = process.env.PORT || 5000;
 
 const connectDB = async () => {
@@ -36,6 +45,28 @@ app.use("/api/users", userRoute);
 app.use("/api/auth", authRoute);
 app.use("/api/rides", rideRoute);
 
+// WebSocket connection handling
+io.on('connection', (socket) => {
+  console.log('User connected:', socket.id);
+
+  socket.on('join-ride', (rideId) => {
+    socket.join(`ride-${rideId}`);
+    console.log(`User ${socket.id} joined ride ${rideId}`);
+  });
+
+  socket.on('leave-ride', (rideId) => {
+    socket.leave(`ride-${rideId}`);
+    console.log(`User ${socket.id} left ride ${rideId}`);
+  });
+
+  socket.on('disconnect', () => {
+    console.log('User disconnected:', socket.id);
+  });
+});
+
+// Make io available to routes
+app.set('io', io);
+
 app.use((err, req, res, next) => {
   const errorStatus = err.status || 500;
   const errorMessage = err.message || "Something went wrong";
@@ -48,7 +79,7 @@ app.use((err, req, res, next) => {
 
 // Connect to database first, then start server
 connectDB().then(() => {
-  app.listen(PORT, () => {
+  server.listen(PORT, () => {
     console.log(`Server is running on PORT: ${PORT}`)
   })
 }).catch(err => {

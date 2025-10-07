@@ -71,6 +71,17 @@ const rideSchema = new mongoose.Schema({
       timestamp: Date,
     },
   ],
+  locationSharing: {
+    enabled: {
+      type: Boolean,
+      default: false,
+    },
+    driverLocation: {
+      latitude: Number,
+      longitude: Number,
+      timestamp: Date,
+    },
+  },
 }, {timestamps:true}
 );
 

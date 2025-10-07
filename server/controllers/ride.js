@@ -145,3 +145,119 @@ export const deleteRide = async(req, res, next) => {
     next(err)
   }
 }
+
+export const toggleLocationSharing = async(req, res, next) => {
+  try{
+    const ride = await Ride.findById(req.params.id);
+    
+    if (!ride) {
+      return res.status(404).json({ message: 'Ride not found' });
+    }
+    
+    if (ride.creator.toString() !== req.user.id) {
+      return res.status(403).json({ message: 'Only the driver can toggle location sharing' });
+    }
+    
+    const updatedRide = await Ride.findByIdAndUpdate(
+      req.params.id,
+      { 
+        $set: { 
+          'locationSharing.enabled': !ride.locationSharing.enabled,
+          'locationSharing.driverLocation': null 
+        }
+      },
+      { new: true }
+    );
+    
+    // Emit location sharing status change to all passengers
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`ride-${req.params.id}`).emit('location-sharing-status-change', {
+        enabled: updatedRide.locationSharing.enabled
+      });
+    }
+    
+    res.status(200).json({ 
+      success: true, 
+      locationSharingEnabled: updatedRide.locationSharing.enabled 
+    });
+  }catch(err){
+    next(err)
+  }
+}
+
+export const updateDriverLocation = async(req, res, next) => {
+  try{
+    const { latitude, longitude } = req.body;
+    const ride = await Ride.findById(req.params.id);
+    
+    if (!ride) {
+      return res.status(404).json({ message: 'Ride not found' });
+    }
+    
+    if (ride.creator.toString() !== req.user.id) {
+      return res.status(403).json({ message: 'Only the driver can update location' });
+    }
+    
+    if (!ride.locationSharing.enabled) {
+      return res.status(400).json({ message: 'Location sharing is not enabled for this ride' });
+    }
+    
+    const updatedRide = await Ride.findByIdAndUpdate(
+      req.params.id,
+      { 
+        $set: { 
+          'locationSharing.driverLocation': {
+            latitude,
+            longitude,
+            timestamp: new Date()
+          }
+        }
+      },
+      { new: true }
+    );
+    
+    // Emit location update to all passengers in the ride
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`ride-${req.params.id}`).emit('driver-location-update', {
+        latitude,
+        longitude,
+        timestamp: updatedRide.locationSharing.driverLocation.timestamp
+      });
+    }
+    
+    res.status(200).json({ 
+      success: true, 
+      location: updatedRide.locationSharing.driverLocation 
+    });
+  }catch(err){
+    next(err)
+  }
+}
+
+export const getDriverLocation = async(req, res, next) => {
+  try{
+    const ride = await Ride.findById(req.params.id);
+    
+    if (!ride) {
+      return res.status(404).json({ message: 'Ride not found' });
+    }
+    
+    if (!ride.passengers.includes(req.user.id) && ride.creator.toString() !== req.user.id) {
+      return res.status(403).json({ message: 'Only passengers and driver can view location' });
+    }
+    
+    if (!ride.locationSharing.enabled) {
+      return res.status(400).json({ message: 'Location sharing is not enabled for this ride' });
+    }
+    
+    res.status(200).json({ 
+      success: true, 
+      locationSharingEnabled: ride.locationSharing.enabled,
+      driverLocation: ride.locationSharing.driverLocation 
+    });
+  }catch(err){
+    next(err)
+  }
+}

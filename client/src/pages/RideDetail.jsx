@@ -1,3 +1,4 @@
+
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -9,12 +10,19 @@ import { useParams } from "react-router-dom"
 import { toast } from "sonner"
 import { format, formatDistance } from "date-fns";
 import axios from "axios"
+import { useContext } from "react"
+import { AuthContext } from "@/context/AuthContext"
+import LocationSharing from "@/components/LocationSharing"
 
 const apiUri = import.meta.env.VITE_REACT_API_URI
 
 const RideDetail = () => {
   const { rideId } = useParams();
+  const { user } = useContext(AuthContext);
   const { loading, data, error } = useFetch(`rides/${rideId}`);
+  
+  // Check if current user is the driver
+  const isDriver = user && data && user._id === data.creator._id;
 
   const handleBook = async() => {
     try{
@@ -64,23 +72,39 @@ const RideDetail = () => {
           <div className="w-full py-3 border-t">
             <p className="text-base">Total Price for 1 Passenger: ₹{data?.price}</p>
           </div>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button>Book Ride</Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Confirm your booking</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Are you sure to confirm your ride? This action will finalize your participation in the shared journey.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleBook}>Continue</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          {!isDriver && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button>Book Ride</Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Confirm your booking</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure to confirm your ride? This action will finalize your participation in the shared journey.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleBook}>Continue</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+          
+          {/* Location Sharing Component */}
+          {user && (
+            <div className="mt-6">
+              <LocationSharing 
+                rideId={rideId} 
+                isDriver={isDriver}
+                driverName={data?.creator?.name}
+                onLocationUpdate={(locationData) => {
+                  console.log('Driver location updated:', locationData);
+                }}
+              />
+            </div>
+          )}
         </div>
         <div className="w-full sm:w-96 flex p-0 py-6 md:p-6 xl:p-8 flex-col">
           <h3 className="text-xl font-semibold leading-5">Rider Details</h3>
