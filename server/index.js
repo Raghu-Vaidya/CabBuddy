@@ -20,7 +20,7 @@ const io = new Server(server, {
     credentials: true,
   }
 })
-const PORT = process.env.PORT || 5000;
+const PORT = 8080; // Using a fixed port 8080 to avoid conflicts
 
 const connectDB = async () => {
   try {
@@ -28,7 +28,8 @@ const connectDB = async () => {
     console.log("Database connected successfully");
   } catch (error) {
     console.error("Database connection error:", error);
-    process.exit(1);
+    console.log("Continuing without database connection. Some features may not work.");
+    // Don't exit the process, allow the server to start anyway
   }
 };
 
@@ -77,12 +78,13 @@ app.use((err, req, res, next) => {
   })
 })
 
-// Connect to database first, then start server
-connectDB().then(() => {
-  server.listen(PORT, () => {
-    console.log(`Server is running on PORT: ${PORT}`)
-  })
-}).catch(err => {
-  console.error("Failed to start server:", err)
-  process.exit(1)
+// Try to connect to database, but start server regardless
+connectDB().catch(err => {
+  console.error("Failed to connect to database:", err)
+  console.log("Starting server without database connection. Some features may not work.")
+});
+
+// Start the server regardless of database connection
+server.listen(PORT, () => {
+  console.log(`Server is running on PORT: ${PORT}`)
 })
