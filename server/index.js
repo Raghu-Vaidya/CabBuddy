@@ -20,7 +20,7 @@ const io = new Server(server, {
     credentials: true,
   }
 })
-const PORT = 8080; // Using a fixed port 8080 to avoid conflicts
+const PORT = process.env.PORT || 5000;
 
 const connectDB = async () => {
   try {

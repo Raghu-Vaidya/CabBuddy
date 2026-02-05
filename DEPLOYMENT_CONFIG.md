@@ -55,3 +55,4 @@ VITE_REACT_API_URI=https://your-railway-app.railway.app/api
 - Never share your actual database password
 - Use environment variables for all sensitive data
 - Railway and Vercel encrypt environment variables automatically
+
